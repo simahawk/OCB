@@ -26,6 +26,24 @@ class Invoice(models.Model):
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.invoice.line'
 
+    def _membership_line_values(self, invoice_line):
+        """Retrieve membership line values given its invoice line."""
+        # Product line has changed to a membership product
+        date_from = invoice_line.product_id.membership_date_from
+        date_to = invoice_line.product_id.membership_date_to
+        if (invoice_line.invoice_id.date_invoice > date_from and
+                invoice_line.invoice_id.date_invoice < date_to):
+            date_from = invoice_line.invoice_id.date_invoice
+        return {
+            'partner': invoice_line.invoice_id.partner_id.id,
+            'membership_id': invoice_line.product_id.id,
+            'member_price': invoice_line.price_unit,
+            'date': fields.Date.today(),
+            'date_from': date_from,
+            'date_to': date_to,
+            'account_invoice_line': invoice_line.id,
+        }
+
     @api.multi
     def write(self, vals):
         MemberLine = self.env['membership.membership_line']
@@ -33,20 +51,7 @@ class AccountInvoiceLine(models.Model):
         for line in self.filtered(lambda line: line.invoice_id.type == 'out_invoice'):
             member_lines = MemberLine.search([('account_invoice_line', '=', line.id)])
             if line.product_id.membership and not member_lines:
-                # Product line has changed to a membership product
-                date_from = line.product_id.membership_date_from
-                date_to = line.product_id.membership_date_to
-                if line.invoice_id.date_invoice > date_from and line.invoice_id.date_invoice < date_to:
-                    date_from = line.invoice_id.date_invoice
-                MemberLine.create({
-                    'partner': line.invoice_id.partner_id.id,
-                    'membership_id': line.product_id.id,
-                    'member_price': line.price_unit,
-                    'date': fields.Date.today(),
-                    'date_from': date_from,
-                    'date_to': date_to,
-                    'account_invoice_line': line.id,
-                })
+                MemberLine.create(self._membership_line_values(line))
             if line.product_id and not line.product_id.membership and member_lines:
                 # Product line has changed to a non membership product
                 member_lines.unlink()
@@ -59,18 +64,5 @@ class AccountInvoiceLine(models.Model):
         if invoice_line.invoice_id.type == 'out_invoice' and \
                 invoice_line.product_id.membership and \
                 not MemberLine.search([('account_invoice_line', '=', invoice_line.id)]):
-            # Product line is a membership product
-            date_from = invoice_line.product_id.membership_date_from
-            date_to = invoice_line.product_id.membership_date_to
-            if invoice_line.invoice_id.date_invoice > date_from and invoice_line.invoice_id.date_invoice < date_to:
-                date_from = invoice_line.invoice_id.date_invoice
-            MemberLine.create({
-                'partner': invoice_line.invoice_id.partner_id.id,
-                'membership_id': invoice_line.product_id.id,
-                'member_price': invoice_line.price_unit,
-                'date': fields.Date.today(),
-                'date_from': date_from,
-                'date_to': date_to,
-                'account_invoice_line': invoice_line.id,
-            })
+            MemberLine.create(self._membership_line_values(invoice_line))
         return invoice_line
