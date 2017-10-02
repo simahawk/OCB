@@ -629,6 +629,7 @@ var ListView = View.extend({
             return field.name === name;
         });
         if (!action) { return; }
+        action = $.extend(true, {}, action);
         if ('confirm' in action && !window.confirm(action.confirm)) {
             return;
         }
@@ -939,9 +940,11 @@ ListView.List = Class.extend({
                     $row = self.$current.children(
                         '[data-id=' + record.get('id') + ']');
                 }
-                var $newRow = $(self.render_record(record));
-                $newRow.find('.o_list_record_selector input').prop('checked', !!$row.find('.o_list_record_selector input').prop('checked'));
-                $row.replaceWith($newRow);
+                if ($row.length) {
+                    var $newRow = $(self.render_record(record));
+                    $newRow.find('.o_list_record_selector input').prop('checked', !!$row.find('.o_list_record_selector input').prop('checked'));
+                    $row.replaceWith($newRow);
+                }
             },
             'add': function (ev, records, record, index) {
                 var $new_row = $(self.render_record(record));
@@ -1499,7 +1502,7 @@ ListView.Groups = Class.extend({
         // drag and drop enabled if list is not sorted (unless it is sorted by
         // its sequence field (ASC)), and there is a visible column with
         // @widget=handle or "sequence" column in the view.
-        if ((dataset.sort && [seqname, seqname + 'ASC', ''].indexOf(dataset.sort()) === -1)
+        if ((dataset.sort && [seqname, seqname + ' ASC', ''].indexOf(dataset.sort()) === -1)
             || !_(this.columns).findWhere({'name': seqname})) {
             return;
         }

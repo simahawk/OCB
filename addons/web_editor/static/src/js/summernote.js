@@ -504,7 +504,7 @@ dom.removeBetween = function (sc, so, ec, eo, towrite) {
         };
 
         for (var i=0; i<nodes.length; i++) {
-            if (!dom.ancestor(nodes[i], ancestor_first_last) && !$.contains(nodes[i], before) && !$.contains(nodes[i], after)) {
+            if (!dom.ancestor(nodes[i], ancestor_first_last) && !$.contains(nodes[i], before) && !$.contains(nodes[i], after) && !dom.isEditable(nodes[i])) {
                 nodes[i].parentNode.removeChild(nodes[i]);
             }
         }
@@ -1121,6 +1121,9 @@ $.summernote.pluginEvents.enter = function (event, editor, layoutInfo) {
         // double enter on the end of a blockquote & pre = new line out of the list
         $('<p></p>').append(br).insertAfter($(r.sc).closest('blockquote, pre'));
         node = br;
+    } else if (dom.isEditable(dom.node(r.sc))) {
+        // if we are directly in an editable, only SHIFT + ENTER should add a newline
+        node = null;
     } else if (last === r.sc) {
         if (dom.isBR(last)) {
             last = last.parentNode;
@@ -2313,11 +2316,19 @@ eventHandler.modules.popover.update = function ($popover, oStyle, isAirMode) {
 eventHandler.modules.clipboard.attach = function(layoutInfo) {
     var $editable = layoutInfo.editable();
     $editable.on('paste', function(e) {
-        e.preventDefault();
-        $editable.data('NoteHistory').recordUndo($editable);
-        var pastedText = ((e.originalEvent || e).clipboardData || window.clipboardData).getData('Text');
-        var formattedText = pastedText.replace(/([^.!?:;])\r?\n/g, "$1").trim(); // Remove linebreaks which are not at the end of a sentence
-        document.execCommand("insertText", false, formattedText);
+        var clipboardData = ((e.originalEvent || e).clipboardData || window.clipboardData);
+        // Change nothing if pasting html (copy from text editor / web / ...) or
+        // if clipboardData is not available (IE / ...)
+        if (clipboardData && clipboardData.types && clipboardData.types.length === 1 && clipboardData.types[0] === "text/plain") {
+            e.preventDefault();
+            $editable.data('NoteHistory').recordUndo($editable); // FIXME
+            var pastedText = clipboardData.getData("text/plain");
+            // Try removing linebreaks which are not really linebreaks (in a PDF,
+            // when a sentence goes over the next line, copying it considers it
+            // a linebreak for example).
+            var formattedText = pastedText.replace(/([\w-])\r?\n([\w-])/g, "$1 $2").trim();
+            document.execCommand("insertText", false, formattedText);
+        }
     });
 };
 
