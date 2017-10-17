@@ -1,28 +1,31 @@
-cache: pip
-
-addons:
-  apt:
-    packages:
-      - expect-dev  # provides unbuffer utility
-      - poppler-utils # document index
-      - antiword # document index
-      - python-ldap # auth_ldap
-
 language: python
 sudo: false
+cache: pip
 
 python:
   - "3.5"
 
+addons:
+  apt:
+# only add the two lines below if you need wkhtmltopdf for your tests
+#    sources:
+#      - pov-wkhtmltopdf
+    packages:
+      - expect-dev  # provides unbuffer utility
+      - python-lxml  # because pip installation is slow
+      - python-simplejson
+      - python-serial
+      - python-yaml
+#      - wkhtmltopdf  # only add if needed and check the before_install section below
+
+# set up an X server to run wkhtmltopdf.
+#before_install:
+#  - "export DISPLAY=:911.0"
+#  - "sh -e /etc/init.d/xvfb start"
+
 env:
   - VERSION="11.0" ODOO_REPO="OCA/OCB" LINT_CHECK="0"
 
-virtualenv:
-  system_site_packages: true
-
-before_install:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
 
 install:
   - ln -s ${HOME}/build/${ODOO_REPO} ${HOME}/${ODOO_REPO#*/}-${VERSION}
@@ -34,13 +37,13 @@ install:
   - (cd ${HOME}/maintainer-quality-tools/travis/ && wget -qO- -t 1 --timeout=240 https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.4/wkhtmltox-0.12.4_linux-generic-amd64.tar.xz | tar -xJ --strip-components=2 wkhtmltox/bin/wkhtmltopdf)
   - sed -i "s/'phantomjs'/'disable_phantomjs'/g" ${TRAVIS_BUILD_DIR}/odoo/tests/common.py
   - export PATH=${HOME}/maintainer-quality-tools/travis:${PATH}
-  - export INCLUDE=$(getaddons.py -m ${HOME}/build/${ODOO_REPO}/openerp/addons ${HOME}/build/${ODOO_REPO}/addons)
+  - export INCLUDE=$(getaddons.py -m ${HOME}/build/${ODOO_REPO}/odoo/addons ${HOME}/build/${ODOO_REPO}/addons)
   - export EXCLUDE=hw_scanner,hw_escpos,theme_bootswatch
   - cp ${HOME}/maintainer-quality-tools/cfg/.coveragerc .
 
 script:
   - SERVER_PATH=${HOME}/${ODOO_REPO#*/}-${VERSION}
-  - export TRAVIS_BUILD_DIR=${SERVER_PATH}/openerp/addons
+  - export TRAVIS_BUILD_DIR=${SERVER_PATH}/odoo/addons
   - travis_run_tests
 
 after_success:
