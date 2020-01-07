@@ -188,7 +188,7 @@
                                     widget="phone" options="{'enable_sms': True}"
                                     attrs="{'invisible':  [('partner_address_phone', '!=', False)]}"/>
                             </group>
-                            <group name="info_not_opportunity" attrs="{'invisible': [('type', '=', 'opportunity')]}">
+                            <group name="info_opportunity2" attrs="{'invisible': [('type', '=', 'opportunity')]}">
                                 <label for="contact_name"/>
                                 <div class="o_row">
                                     <field name="contact_name"/>
@@ -208,7 +208,7 @@
                                 <field name="phone" widget="phone" options="{'enable_sms': True}"/>
                                 <field name="mobile" widget="phone" options="{'enable_sms': True}"/>
                             </group>
-                            <group name="info_not_lead" attrs="{'invisible': [('type', '=', 'lead')]}">
+                            <group name="info_lead" attrs="{'invisible': [('type', '=', 'lead')]}">
                                 <field name="date_deadline"/>
                                 <field name="priority" widget="priority"/>
                                 <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
