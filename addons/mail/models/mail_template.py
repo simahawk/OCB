@@ -273,16 +273,8 @@ class MailTemplate(models.Model):
         res_to_rec = dict.fromkeys(res_ids, None)
         for record in records:
             res_to_rec[record.id] = record
-        variables = {
-            'format_date': lambda date, date_format=False, lang_code=False: format_date(self.env, date, date_format, lang_code),
-            'format_datetime': lambda dt, tz=False, dt_format=False, lang_code=False: format_datetime(self.env, dt, tz, dt_format, lang_code),
-            'format_amount': lambda amount, currency, lang_code=False: tools.format_amount(self.env, amount, currency, lang_code),
-            'format_duration': lambda value: tools.format_duration(value),
-            'user': self.env.user,
-            'ctx': self._context,  # context kw would clash with mako internals
-        }
         for res_id, record in res_to_rec.items():
-            variables['object'] = record
+            variables = self._get_render_template_variables(record)
             try:
                 render_result = template.render(variables)
             except Exception as e:
@@ -298,6 +290,17 @@ class MailTemplate(models.Model):
                 results[res_id] = self.render_post_process(result)
 
         return multi_mode and results or results[res_ids[0]]
+
+    def _get_render_template_variables(self, record):
+        return {
+            'object': record,
+            'format_date': lambda date, date_format=False, lang_code=False: format_date(self.env, date, date_format, lang_code),
+            'format_datetime': lambda dt, tz=False, dt_format=False, lang_code=False: format_datetime(self.env, dt, tz, dt_format, lang_code),
+            'format_amount': lambda amount, currency, lang_code=False: tools.format_amount(self.env, amount, currency, lang_code),
+            'format_duration': lambda value: tools.format_duration(value),
+            'user': self.env.user,
+            'ctx': self._context,  # context kw would clash with mako internals
+        }
 
     def get_email_template(self, res_ids):
         multi_mode = True
